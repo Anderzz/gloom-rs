@@ -33,13 +33,45 @@ fn offset<T>(n: u32) -> *const c_void {
     (n * mem::size_of::<T>() as u32) as *const T as *const c_void
 }
 
-// Get a null pointer (equivalent to an offset of 0)
-// ptr::null()
 
 
 
 // == // Modify and complete the function below for the first task
-// unsafe fn FUNCTION_NAME(ARGUMENT_NAME: &Vec<f32>, ARGUMENT_NAME: &Vec<u32>) -> u32 { } 
+unsafe fn setup_vao(vek: &Vec<f32>, ind: &Vec<u32>, col: &Vec<f32>) -> u32 {
+
+    /* Sets up a Vertex Array Object containing triangles
+       Returns the integer ID of the created VAO
+
+       #Args
+       * 'vek' - Vector of 3D vertex coordinates
+       * 'ind' - Vector of indices
+    */ 
+
+    let mut vao: gl::types::GLuint=0;
+    let mut vbo: gl::types::GLuint=0;
+    let mut ibuffer: gl::types::GLuint=0;
+    let mut color_vbo: gl::types::GLuint=0;
+    let mut uni: gl::types::GLuint=0; //used for task 3
+    gl::GenVertexArrays(1, &mut vao);
+    gl::BindVertexArray(vao);
+    gl::GenBuffers(1,&mut vbo);
+    gl::BindBuffer(gl::ARRAY_BUFFER,vbo);
+    gl::BufferData(gl::ARRAY_BUFFER,byte_size_of_array(vek),pointer_to_array(vek),gl::STATIC_DRAW);
+    gl::VertexAttribPointer(0,3,gl::FLOAT,gl::FALSE,0,ptr::null());
+    gl::EnableVertexAttribArray(0);
+    gl::GenBuffers(1,&mut ibuffer);
+    gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER,ibuffer);
+    gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,byte_size_of_array(ind),pointer_to_array(ind),gl::STATIC_DRAW);
+
+    gl::GenBuffers(1, &mut color_vbo);
+    gl::BindBuffer(gl::ARRAY_BUFFER, color_vbo);
+    //gl::BufferData(gl::ARRAY_BUFFER, byte_size_of_array(col), pointer_to_array(col), gl::STATIC_DRAW);
+    gl::BufferData(gl::ARRAY_BUFFER, (mem::size_of::<f32>()*col.len()) as isize, pointer_to_array(col), gl::STATIC_DRAW);
+    gl::VertexAttribPointer(1,4,gl::FLOAT,gl::FALSE,16,ptr::null());
+    gl::EnableVertexAttribArray(1);
+
+    return vao;
+}
 
 fn main() {
     // Set up the necessary objects to deal with windows and event handling
@@ -93,43 +125,130 @@ fn main() {
         }
 
         // == // Set up your VAO here
-        unsafe {
 
-        }
+        /* Create the vector for 3D-coordinates where one line represents a 
+        point in 3D space, ie. x,y,z. 
+        Also make an array of indices which is needed to set up a VAO.
+        */ 
 
+        let vao1 = unsafe {
+                let vek: Vec<f32> = vec![
+                    -0.9, 0.9, 0.2,
+                    -0.9, 0.5, 0.2,
+                    -0.5, 0.7, 0.2,
+
+                    0.9, 0.9, 0.5,
+                    0.5, 0.7, 0.5,
+                    0.9, 0.5, 0.5,
+
+                    -0.9, -0.5, 0.7,
+                    -0.9, -0.9, 0.7,
+                    -0.5, -0.7, 0.7,
+
+
+                    -0.3, 0.7, 1.0,
+                     0.0, -0.7, 1.0,
+                     0.3, 0.7, 1.0
+
+                                         ];
+                let indices: Vec<u32> = (0..12).collect();
+
+                //The colors in RGBA-format, one line represents the color of one vertex. 
+                let color: Vec<f32> = vec![
+                     
+
+                     
+
+                    0.8, 0.2, 0.6, 0.9,
+                    0.5, 0.4, 0.2, 0.8,
+                    1.0, 0.6, 0.7, 0.9,
+
+                    0.3, 0.2, 0.8, 0.9,
+                    0.7, 0.6, 0.7, 0.8,
+                    0.15, 0.3, 0.1, 0.9,
+
+                    0.3, 0.6, 0.5, 1.0,
+                    0.9, 0.2, 0.9, 1.0,
+                    0.5, 0.6, 0.1, 0.6,
+
+                    0.9, 0.8, 0.1, 1.0,
+                    1.0, 1.0, 0.3, 0.4,
+                    0.9, 0.2, 1.0, 1.0
+
+
+                     
+                                         ];
+                setup_vao(&vek, &indices, &color)
+        };
         // Basic usage of shader helper:
         // The example code below returns a shader object, which contains the field `.program_id`.
         // The snippet is not enough to do the assignment, and will need to be modified (outside of
         // just using the correct path), but it only needs to be called once
         //
-        //     shader::ShaderBuilder::new()
-        //        .attach_file("./path/to/shader.file")
-        //        .link();
         unsafe {
+                //attach and activate the shaders
+
+                let shader = shader::ShaderBuilder::new()
+                .attach_file("./shaders/simple.frag")
+                .attach_file("./shaders/simple.vert")
+                .link();
+                shader.activate();
 
         }
-
         // Used to demonstrate keyboard handling -- feel free to remove
         let mut _arbitrary_number = 0.0;
 
         let first_frame_time = std::time::Instant::now();
         let mut last_frame_time = first_frame_time;
+
+        //transformation matrix from keyboard input
+        let mut trans: glm::Mat4=glm::identity();
+
         // The main rendering loop
         loop {
             let now = std::time::Instant::now();
             let elapsed = now.duration_since(first_frame_time).as_secs_f32();
             let delta_time = now.duration_since(last_frame_time).as_secs_f32();
             last_frame_time = now;
+            let mut matrise: glm::Mat4=glm::identity(); //the final transformation matrix
+            
 
             // Handle keyboard input
             if let Ok(keys) = pressed_keys.lock() {
                 for key in keys.iter() {
                     match key {
+                        VirtualKeyCode::W => {
+                            trans = glm::translate(&trans,&glm::vec3(0.0, -4.0*delta_time, 0.0));
+                        },
+                        VirtualKeyCode::S => {
+                            trans = glm::translate(&trans,&glm::vec3(0.0, 4.0*delta_time, 0.0))
+                        },
                         VirtualKeyCode::A => {
-                            _arbitrary_number += delta_time;
+                            trans = glm::translate(&trans,&glm::vec3(4.0*delta_time, 0.0, 0.0))
                         },
                         VirtualKeyCode::D => {
-                            _arbitrary_number -= delta_time;
+                            trans = glm::translate(&trans,&glm::vec3(-4.0*delta_time, 0.0, 0.0))
+                        },
+                        VirtualKeyCode::Q => {
+                            trans = glm::translate(&trans,&glm::vec3(0.0, 0.0, 4.0*delta_time))
+                        },
+                        VirtualKeyCode::E => {
+                            trans = glm::translate(&trans,&glm::vec3(0.0, 0.0, -4.0*delta_time))
+                        },
+                        VirtualKeyCode::Up => {
+                            trans = glm::rotate(&trans,0.03,&glm::vec3(-1.0, 0.0, 0.0))
+                        },
+                        VirtualKeyCode::Down => {
+                            trans = glm::rotate(&trans,0.03,&glm::vec3(1.0, 0.0, 0.0))
+                        },
+                        VirtualKeyCode::Left => {
+                            trans = glm::rotate(&trans,0.03,&glm::vec3(0.0, -1.0, 0.0))
+                        },
+                        VirtualKeyCode::Right => {
+                            trans = glm::rotate(&trans,0.03,&glm::vec3(0.0, 1.0, 0.0))
+                        },
+                        VirtualKeyCode::R => {
+                            trans = glm::identity();
                         },
 
 
@@ -146,10 +265,23 @@ fn main() {
             }
 
             unsafe {
-                gl::ClearColor(0.76862745, 0.71372549, 0.94901961, 1.0); // moon raker, full opacity
+                gl::ClearColor(0.4, 0.71372549, 0.94901961, 1.0); // moon raker, full opacity
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+                gl::Uniform1f(3,elapsed.sin()/2.0);
+                //perspective matrix to achieve depth
+                let persp: glm::Mat4 =glm::perspective(16.0/9.0 as f32, std::f32::consts::PI/2.0, 1.0 as f32, 100.0 as f32);
+                //translate to make sure triangles don't go out of view
+                let z_translation: glm::Mat4 = glm::translation(&glm::vec3(0.0, 0.0, -3.0));
+                //apply transformations
+                matrise=persp*trans*z_translation;
+                //send the final transformation matrix to the vertex shader
+                gl::UniformMatrix4fv(4, 1, gl::TRUE, matrise.as_ptr());
 
                 // Issue the necessary commands to draw your scene here
+                //Bind the VAO and make the drawcall
+                gl::BindVertexArray(vao1);
+                gl::DrawElements(gl::TRIANGLES,12,gl::UNSIGNED_INT,ptr::null());
+                
 
 
 
@@ -209,7 +341,7 @@ fn main() {
                 }
 
                 // Handle escape separately
-                match keycode {
+               /* match keycode {
                     Escape => {
                         *control_flow = ControlFlow::Exit;
                     },
@@ -217,7 +349,7 @@ fn main() {
                         *control_flow = ControlFlow::Exit;
                     }
                     _ => { }
-                }
+                }*/ 
             },
             Event::DeviceEvent { event: DeviceEvent::MouseMotion { delta }, .. } => {
                 // Accumulate mouse movement
