@@ -5,6 +5,7 @@ use std::sync::{Mutex, Arc, RwLock};
 
 mod shader;
 mod util;
+mod mesh;
 
 use glutin::event::{Event, WindowEvent, DeviceEvent, KeyboardInput, ElementState::{Pressed, Released}, VirtualKeyCode::{self, *}};
 use glutin::event_loop::ControlFlow;
@@ -37,7 +38,7 @@ fn offset<T>(n: u32) -> *const c_void {
 
 
 // == // Modify and complete the function below for the first task
-unsafe fn setup_vao(vek: &Vec<f32>, ind: &Vec<u32>, col: &Vec<f32>) -> u32 {
+unsafe fn setup_vao(vek: &Vec<f32>, ind: &Vec<u32>, col: &Vec<f32>, n_vec: &Vec<f32>) -> u32 {
 
     /* Sets up a Vertex Array Object containing triangles
        Returns the integer ID of the created VAO
@@ -51,6 +52,7 @@ unsafe fn setup_vao(vek: &Vec<f32>, ind: &Vec<u32>, col: &Vec<f32>) -> u32 {
     let mut vbo: gl::types::GLuint=0;
     let mut ibuffer: gl::types::GLuint=0;
     let mut color_vbo: gl::types::GLuint=0;
+    let mut n_vec_vbo: gl::types::GLuint=0;
     let mut uni: gl::types::GLuint=0; //used for task 3
     gl::GenVertexArrays(1, &mut vao);
     gl::BindVertexArray(vao);
@@ -63,12 +65,20 @@ unsafe fn setup_vao(vek: &Vec<f32>, ind: &Vec<u32>, col: &Vec<f32>) -> u32 {
     gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER,ibuffer);
     gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,byte_size_of_array(ind),pointer_to_array(ind),gl::STATIC_DRAW);
 
+    //color
     gl::GenBuffers(1, &mut color_vbo);
     gl::BindBuffer(gl::ARRAY_BUFFER, color_vbo);
     //gl::BufferData(gl::ARRAY_BUFFER, byte_size_of_array(col), pointer_to_array(col), gl::STATIC_DRAW);
     gl::BufferData(gl::ARRAY_BUFFER, (mem::size_of::<f32>()*col.len()) as isize, pointer_to_array(col), gl::STATIC_DRAW);
     gl::VertexAttribPointer(1,4,gl::FLOAT,gl::FALSE,16,ptr::null());
     gl::EnableVertexAttribArray(1);
+
+    //normal vectors
+    gl::GenBuffers(5, &mut n_vec_vbo);
+    gl::BindBuffer(gl::ARRAY_BUFFER, n_vec_vbo);
+    gl::BufferData(gl::ARRAY_BUFFER, (mem::size_of::<f32>()*n_vec.len()) as isize, pointer_to_array(n_vec), gl::STATIC_DRAW);
+    gl::VertexAttribPointer(5,3,gl::FLOAT,gl::FALSE,0,ptr::null());
+    gl::EnableVertexAttribArray(5);
 
     return vao;
 }
@@ -131,7 +141,7 @@ fn main() {
         Also make an array of indices which is needed to set up a VAO.
         */ 
 
-        let vao1 = unsafe {
+        /*let vao1 = unsafe {
                 let vek: Vec<f32> = vec![
                     -0.9, 0.9, 0.2,
                     -0.9, 0.5, 0.2,
@@ -179,7 +189,7 @@ fn main() {
                      
                                          ];
                 setup_vao(&vek, &indices, &color)
-        };
+        };*/
         // Basic usage of shader helper:
         // The example code below returns a shader object, which contains the field `.program_id`.
         // The snippet is not enough to do the assignment, and will need to be modified (outside of
@@ -194,7 +204,24 @@ fn main() {
                 .link();
                 shader.activate();
 
+
         }
+
+        //load the mesh
+        let mesh = unsafe {
+            mesh::Terrain::load("./resources/lunarsurface.obj")
+        };
+
+        //set up new vao for the terrain model
+        let vao2= unsafe {
+            let vek:     Vec<f32> = mesh.vertices;
+            let indices: Vec<u32> = mesh.indices;
+            let color:   Vec<f32> = mesh.colors;
+            let normals: Vec<f32> = mesh.normals;
+            setup_vao(&vek, &indices, &color, &normals)
+        };
+
+
         // Used to demonstrate keyboard handling -- feel free to remove
         let mut _arbitrary_number = 0.0;
 
@@ -269,7 +296,7 @@ fn main() {
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
                 gl::Uniform1f(3,elapsed.sin()/2.0);
                 //perspective matrix to achieve depth
-                let persp: glm::Mat4 =glm::perspective(16.0/9.0 as f32, std::f32::consts::PI/2.0, 1.0 as f32, 100.0 as f32);
+                let persp: glm::Mat4 =glm::perspective(16.0/9.0 as f32, std::f32::consts::PI/2.0, 1.0 as f32, 1000.0 as f32);
                 //translate to make sure triangles don't go out of view
                 let z_translation: glm::Mat4 = glm::translation(&glm::vec3(0.0, 0.0, -3.0));
                 //apply transformations
@@ -279,8 +306,8 @@ fn main() {
 
                 // Issue the necessary commands to draw your scene here
                 //Bind the VAO and make the drawcall
-                gl::BindVertexArray(vao1);
-                gl::DrawElements(gl::TRIANGLES,12,gl::UNSIGNED_INT,ptr::null());
+                gl::BindVertexArray(vao2);
+                gl::DrawElements(gl::TRIANGLES,mesh.index_count,gl::UNSIGNED_INT,ptr::null());
                 
 
 
