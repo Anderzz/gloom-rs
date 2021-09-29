@@ -74,7 +74,7 @@ unsafe fn setup_vao(vek: &Vec<f32>, ind: &Vec<u32>, col: &Vec<f32>, n_vec: &Vec<
     gl::EnableVertexAttribArray(1);
 
     //normal vectors
-    gl::GenBuffers(5, &mut n_vec_vbo);
+    gl::GenBuffers(1, &mut n_vec_vbo);
     gl::BindBuffer(gl::ARRAY_BUFFER, n_vec_vbo);
     gl::BufferData(gl::ARRAY_BUFFER, (mem::size_of::<f32>()*n_vec.len()) as isize, pointer_to_array(n_vec), gl::STATIC_DRAW);
     gl::VertexAttribPointer(5,3,gl::FLOAT,gl::FALSE,0,ptr::null());
@@ -208,9 +208,7 @@ fn main() {
         }
 
         //load the mesh
-        let mesh = unsafe {
-            mesh::Terrain::load("./resources/lunarsurface.obj")
-        };
+        let mesh = mesh::Terrain::load("./resources/lunarsurface.obj");
 
         //set up new vao for the terrain model
         let vao2= unsafe {
@@ -245,22 +243,22 @@ fn main() {
                 for key in keys.iter() {
                     match key {
                         VirtualKeyCode::W => {
-                            trans = glm::translate(&trans,&glm::vec3(0.0, -4.0*delta_time, 0.0));
+                            trans = glm::translate(&trans,&glm::vec3(0.0, -40.0*delta_time, 0.0));
                         },
                         VirtualKeyCode::S => {
-                            trans = glm::translate(&trans,&glm::vec3(0.0, 4.0*delta_time, 0.0))
+                            trans = glm::translate(&trans,&glm::vec3(0.0, 40.0*delta_time, 0.0))
                         },
                         VirtualKeyCode::A => {
-                            trans = glm::translate(&trans,&glm::vec3(4.0*delta_time, 0.0, 0.0))
+                            trans = glm::translate(&trans,&glm::vec3(100.0*delta_time, 0.0, 0.0))
                         },
                         VirtualKeyCode::D => {
-                            trans = glm::translate(&trans,&glm::vec3(-4.0*delta_time, 0.0, 0.0))
+                            trans = glm::translate(&trans,&glm::vec3(-100.0*delta_time, 0.0, 0.0))
                         },
                         VirtualKeyCode::Q => {
-                            trans = glm::translate(&trans,&glm::vec3(0.0, 0.0, 4.0*delta_time))
+                            trans = glm::translate(&trans,&glm::vec3(0.0, 0.0, 40.0*delta_time))
                         },
                         VirtualKeyCode::E => {
-                            trans = glm::translate(&trans,&glm::vec3(0.0, 0.0, -4.0*delta_time))
+                            trans = glm::translate(&trans,&glm::vec3(0.0, 0.0, -40.0*delta_time))
                         },
                         VirtualKeyCode::Up => {
                             trans = glm::rotate(&trans,0.03,&glm::vec3(-1.0, 0.0, 0.0))
@@ -300,7 +298,7 @@ fn main() {
                 //translate to make sure triangles don't go out of view
                 let z_translation: glm::Mat4 = glm::translation(&glm::vec3(0.0, 0.0, -3.0));
                 //apply transformations
-                matrise=persp*trans*z_translation;
+                matrise=persp*z_translation*trans;
                 //send the final transformation matrix to the vertex shader
                 gl::UniformMatrix4fv(4, 1, gl::TRUE, matrise.as_ptr());
 
