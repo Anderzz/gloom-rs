@@ -292,7 +292,7 @@ fn main() {
             unsafe {
                 gl::ClearColor(0.4, 0.71372549, 0.94901961, 1.0); // moon raker, full opacity
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-                gl::Uniform1f(3,elapsed.sin()/2.0);
+                //gl::Uniform1f(3,elapsed.sin()/2.0);
                 //perspective matrix to achieve depth
                 let persp: glm::Mat4 =glm::perspective(16.0/9.0 as f32, std::f32::consts::PI/2.0, 1.0 as f32, 1000.0 as f32);
                 //translate to make sure triangles don't go out of view
