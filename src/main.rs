@@ -298,7 +298,7 @@ fn main() {
                 //translate to make sure triangles don't go out of view
                 let z_translation: glm::Mat4 = glm::translation(&glm::vec3(0.0, 0.0, -3.0));
                 //apply transformations
-                matrise=persp*z_translation*trans;
+                matrise=persp*trans*z_translation;
                 //send the final transformation matrix to the vertex shader
                 gl::UniformMatrix4fv(4, 1, gl::TRUE, matrise.as_ptr());
 
