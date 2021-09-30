@@ -6,6 +6,8 @@ use std::sync::{Mutex, Arc, RwLock};
 mod shader;
 mod util;
 mod mesh;
+mod scene_graph;
+use scene_graph::SceneNode;
 
 use glutin::event::{Event, WindowEvent, DeviceEvent, KeyboardInput, ElementState::{Pressed, Released}, VirtualKeyCode::{self, *}};
 use glutin::event_loop::ControlFlow;
@@ -44,8 +46,10 @@ unsafe fn setup_vao(vek: &Vec<f32>, ind: &Vec<u32>, col: &Vec<f32>, n_vec: &Vec<
        Returns the integer ID of the created VAO
 
        #Args
-       * 'vek' - Vector of 3D vertex coordinates
-       * 'ind' - Vector of indices
+       * 'vek'   - Vector of 3D vertex coordinates
+       * 'ind'   - Vector of indices
+       * 'col'   - Vector of rgba values
+       * 'n_vec' - Vector of normal vectors
     */ 
 
     let mut vao: gl::types::GLuint=0;
@@ -197,7 +201,6 @@ fn main() {
         //
         unsafe {
                 //attach and activate the shaders
-
                 let shader = shader::ShaderBuilder::new()
                 .attach_file("./shaders/simple.frag")
                 .attach_file("./shaders/simple.vert")
@@ -207,7 +210,7 @@ fn main() {
 
         }
 
-        //load the model
+        //load the terrain model
         let mesh = mesh::Terrain::load("./resources/lunarsurface.obj");
 
         //set up new vao for the terrain model
@@ -218,6 +221,42 @@ fn main() {
             let normals: Vec<f32> = mesh.normals;
             setup_vao(&vek, &indices, &color, &normals)
         };
+
+
+        //load the helicopter model
+        let heli= mesh::Helicopter::load("./resources/helicopter.obj");
+        
+        //setup the vaos for the different parts of the heli
+        let body_vao = unsafe {
+            let vek:     Vec<f32> = heli.body.vertices;
+            let indices: Vec<u32> = heli.body.indices;
+            let color:   Vec<f32> = heli.body.colors;
+            let normals: Vec<f32> = heli.body.normals;
+            setup_vao(&vek, &indices, &color, &normals)
+        };
+        let door_vao = unsafe {
+            let vek:     Vec<f32> = heli.door.vertices;
+            let indices: Vec<u32> = heli.door.indices;
+            let color:   Vec<f32> = heli.door.colors;
+            let normals: Vec<f32> = heli.door.normals;
+            setup_vao(&vek, &indices, &color, &normals)
+        };
+        let main_rotor_vao = unsafe {
+            let vek:     Vec<f32> = heli.main_rotor.vertices;
+            let indices: Vec<u32> = heli.main_rotor.indices;
+            let color:   Vec<f32> = heli.main_rotor.colors;
+            let normals: Vec<f32> = heli.main_rotor.normals;
+            setup_vao(&vek, &indices, &color, &normals)
+        };
+        let tail_rotor_vao = unsafe {
+            let vek:     Vec<f32> = heli.tail_rotor.vertices;
+            let indices: Vec<u32> = heli.tail_rotor.indices;
+            let color:   Vec<f32> = heli.tail_rotor.colors;
+            let normals: Vec<f32> = heli.tail_rotor.normals;
+            setup_vao(&vek, &indices, &color, &normals)
+        };
+
+        //setup the scene graph
 
 
         // Used to demonstrate keyboard handling -- feel free to remove
@@ -306,6 +345,20 @@ fn main() {
                 //Bind the VAO and make the drawcall
                 gl::BindVertexArray(vao2);
                 gl::DrawElements(gl::TRIANGLES,mesh.index_count,gl::UNSIGNED_INT,ptr::null());
+
+                //draw the helicopter
+                gl::BindVertexArray(body_vao);
+                gl::DrawElements(gl::TRIANGLES,heli.body.index_count,gl::UNSIGNED_INT,ptr::null());
+
+                gl::BindVertexArray(door_vao);
+                gl::DrawElements(gl::TRIANGLES,heli.door.index_count,gl::UNSIGNED_INT,ptr::null());
+
+                gl::BindVertexArray(main_rotor_vao);
+                gl::DrawElements(gl::TRIANGLES,heli.main_rotor.index_count,gl::UNSIGNED_INT,ptr::null());
+
+                gl::BindVertexArray(tail_rotor_vao);
+                gl::DrawElements(gl::TRIANGLES,heli.tail_rotor.index_count,gl::UNSIGNED_INT,ptr::null());
+
                 
 
 
