@@ -207,7 +207,7 @@ fn main() {
 
         }
 
-        //load the mesh
+        //load the model
         let mesh = mesh::Terrain::load("./resources/lunarsurface.obj");
 
         //set up new vao for the terrain model
