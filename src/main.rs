@@ -53,7 +53,7 @@ unsafe fn setup_vao(vek: &Vec<f32>, ind: &Vec<u32>, col: &Vec<f32>, n_vec: &Vec<
     let mut ibuffer: gl::types::GLuint=0;
     let mut color_vbo: gl::types::GLuint=0;
     let mut n_vec_vbo: gl::types::GLuint=0;
-    let mut uni: gl::types::GLuint=0; //used for task 3
+    //let mut uni: gl::types::GLuint=0; //used for task 3
     gl::GenVertexArrays(1, &mut vao);
     gl::BindVertexArray(vao);
     gl::GenBuffers(1,&mut vbo);
