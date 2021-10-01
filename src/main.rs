@@ -87,6 +87,21 @@ unsafe fn setup_vao(vek: &Vec<f32>, ind: &Vec<u32>, col: &Vec<f32>, n_vec: &Vec<
     return vao;
 }
 
+unsafe fn draw_scene(node: &scene_graph::SceneNode,
+    view_projection_matrix: &glm::Mat4) {
+    // Check if node is drawable, set uniforms, draw
+    //avoid drawing the rootnode (?)
+    if node.vao_id != 0 {
+        gl::BindVertexArray(node.vao_id);
+        gl::DrawElements(gl::TRIANGLES,node.index_count,gl::UNSIGNED_INT,ptr::null());
+    }
+    // Recurse
+    for &child in &node.children {
+        draw_scene(&*child, view_projection_matrix);
+    }
+}
+    
+
 fn main() {
     // Set up the necessary objects to deal with windows and event handling
     let el = glutin::event_loop::EventLoop::new();
@@ -214,7 +229,7 @@ fn main() {
         let mesh = mesh::Terrain::load("./resources/lunarsurface.obj");
 
         //set up new vao for the terrain model
-        let vao2= unsafe {
+        let terrain_vao= unsafe {
             let vek:     Vec<f32> = mesh.vertices;
             let indices: Vec<u32> = mesh.indices;
             let color:   Vec<f32> = mesh.colors;
@@ -257,6 +272,21 @@ fn main() {
         };
 
         //setup the scene graph
+
+        //generate nodes for all objects
+        let mut root = SceneNode::new();
+        let mut terrain = SceneNode::from_vao(terrain_vao, mesh.index_count);
+        let mut body = SceneNode::from_vao(body_vao, heli.body.index_count);
+        let door = SceneNode::from_vao(door_vao, heli.door.index_count);
+        let main_rotor = SceneNode::from_vao(main_rotor_vao, heli.main_rotor.index_count);
+        let tail_rotor = SceneNode::from_vao(tail_rotor_vao, heli.tail_rotor.index_count);
+
+        //organize the graph
+        root.add_child(&terrain);
+        terrain.add_child(&body);
+        body.add_child(&door);
+        body.add_child(&main_rotor);
+        body.add_child(&tail_rotor);
 
 
         // Used to demonstrate keyboard handling -- feel free to remove
@@ -341,9 +371,14 @@ fn main() {
                 //send the final transformation matrix to the vertex shader
                 gl::UniformMatrix4fv(4, 1, gl::TRUE, matrise.as_ptr());
 
+                //draw the scene graph
+                draw_scene(&root, &matrise);
+
+
                 // Issue the necessary commands to draw your scene here
                 //Bind the VAO and make the drawcall
-                gl::BindVertexArray(vao2);
+                /*
+                gl::BindVertexArray(terrain_vao);
                 gl::DrawElements(gl::TRIANGLES,mesh.index_count,gl::UNSIGNED_INT,ptr::null());
 
                 //draw the helicopter
@@ -358,7 +393,7 @@ fn main() {
 
                 gl::BindVertexArray(tail_rotor_vao);
                 gl::DrawElements(gl::TRIANGLES,heli.tail_rotor.index_count,gl::UNSIGNED_INT,ptr::null());
-
+                */
                 
 
 
