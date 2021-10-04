@@ -87,6 +87,7 @@ unsafe fn setup_vao(vek: &Vec<f32>, ind: &Vec<u32>, col: &Vec<f32>, n_vec: &Vec<
     return vao;
 }
 
+//function to traverse and draw the scenegraph
 unsafe fn draw_scene(node: &scene_graph::SceneNode,
     view_projection_matrix: &glm::Mat4) {
     // Check if node is drawable, set uniforms, draw
@@ -100,6 +101,18 @@ unsafe fn draw_scene(node: &scene_graph::SceneNode,
         draw_scene(&*child, view_projection_matrix);
     }
 }
+
+//function to traverse and update the scenegraph
+unsafe fn update_node_transformations(node: &mut scene_graph::SceneNode,
+    transformation_so_far: &glm::Mat4) {
+    // Construct the correct transformation matrix
+    // Update the node's transformation matrix
+    // Recurse
+    for &child in &node.children {
+    update_node_transformations(&mut *child,
+    &node.current_transformation_matrix);
+    }
+    }
     
 
 fn main() {
@@ -280,6 +293,10 @@ fn main() {
         let door = SceneNode::from_vao(door_vao, heli.door.index_count);
         let main_rotor = SceneNode::from_vao(main_rotor_vao, heli.main_rotor.index_count);
         let tail_rotor = SceneNode::from_vao(tail_rotor_vao, heli.tail_rotor.index_count);
+
+        //set the reference points for the nodes
+        tail_rotor.reference_point = vec![0.35, 2.3, 10.4];
+        //hva skal de andre være?
 
         //organize the graph
         root.add_child(&terrain);
