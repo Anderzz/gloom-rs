@@ -110,6 +110,7 @@ unsafe fn update_node_transformations(node: &mut scene_graph::SceneNode,
     // Construct the correct transformation matrix
     let nref = -node.reference_point;
     let mut trans: glm::Mat4 = glm::identity();
+    trans = transformation_so_far*trans;
     trans = glm::translate(&trans, &node.reference_point);
     trans = glm::rotate(&trans, 0.05, &node.rotation);
     trans = glm::translate(&trans, &nref);
