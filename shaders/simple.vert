@@ -13,7 +13,8 @@ uniform layout(location = 4) mat4 transform;
 void main()
 {
     //m[0][0]=uni; //task3, but breaks if I remove :)
-    gl_Position = vec4(position, 1.0f)*transform;
+    //gl_Position = transform*vec4(position, 1.0f);
+    gl_Position = transform * vec4(position, 1.0f);
     color_out=color_in;
     normals_out=normals_in;
 

@@ -92,13 +92,15 @@ unsafe fn draw_scene(node: &scene_graph::SceneNode,
     view_projection_matrix: &glm::Mat4) {
     // Check if node is drawable, set uniforms, draw
     //avoid drawing the rootnode (?)
+    let vpm=view_projection_matrix*node.current_transformation_matrix;
     if node.vao_id != 0 {
         gl::BindVertexArray(node.vao_id);
         gl::DrawElements(gl::TRIANGLES,node.index_count,gl::UNSIGNED_INT,ptr::null());
+        
     }
     // Recurse
     for &child in &node.children {
-        draw_scene(&*child, view_projection_matrix);
+        draw_scene(&*child, &vpm);
     }
 }
 
@@ -106,7 +108,14 @@ unsafe fn draw_scene(node: &scene_graph::SceneNode,
 unsafe fn update_node_transformations(node: &mut scene_graph::SceneNode,
     transformation_so_far: &glm::Mat4) {
     // Construct the correct transformation matrix
+    let nref = -node.reference_point;
+    let mut trans: glm::Mat4 = glm::identity();
+    trans = glm::translate(&trans, &node.reference_point);
+    trans = glm::rotate(&trans, 0.05, &node.rotation);
+    trans = glm::translate(&trans, &nref);
+
     // Update the node's transformation matrix
+    node.current_transformation_matrix=node.current_transformation_matrix*trans;
     // Recurse
     for &child in &node.children {
     update_node_transformations(&mut *child,
@@ -290,12 +299,18 @@ fn main() {
         let mut root = SceneNode::new();
         let mut terrain = SceneNode::from_vao(terrain_vao, mesh.index_count);
         let mut body = SceneNode::from_vao(body_vao, heli.body.index_count);
-        let door = SceneNode::from_vao(door_vao, heli.door.index_count);
-        let main_rotor = SceneNode::from_vao(main_rotor_vao, heli.main_rotor.index_count);
-        let tail_rotor = SceneNode::from_vao(tail_rotor_vao, heli.tail_rotor.index_count);
+        let mut door = SceneNode::from_vao(door_vao, heli.door.index_count);
+        let mut main_rotor = SceneNode::from_vao(main_rotor_vao, heli.main_rotor.index_count);
+        let mut tail_rotor = SceneNode::from_vao(tail_rotor_vao, heli.tail_rotor.index_count);
 
         //set the reference points for the nodes
-        tail_rotor.reference_point = vec![0.35, 2.3, 10.4];
+        tail_rotor.reference_point = glm::vec3(0.35, 2.3, 10.4);
+        main_rotor.reference_point = glm::vec3(0.0, 2.3, 0.0);
+        body.reference_point       = glm::vec3(0.0, 0.0, 0.0);
+        /*
+        door.reference_point = glm::vec3(0.35, 2.3, 10.4);
+        tail_rotor.reference_point = glm::vec3(0.35, 2.3, 10.4);
+        */
         //hva skal de andre være?
 
         //organize the graph
@@ -386,7 +401,7 @@ fn main() {
                 //apply transformations
                 matrise=persp*trans*z_translation;
                 //send the final transformation matrix to the vertex shader
-                gl::UniformMatrix4fv(4, 1, gl::TRUE, matrise.as_ptr());
+                gl::UniformMatrix4fv(4, 1, gl::FALSE, matrise.as_ptr());
 
                 //draw the scene graph
                 draw_scene(&root, &matrise);
