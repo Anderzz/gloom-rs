@@ -91,16 +91,16 @@ unsafe fn setup_vao(vek: &Vec<f32>, ind: &Vec<u32>, col: &Vec<f32>, n_vec: &Vec<
 unsafe fn draw_scene(node: &scene_graph::SceneNode,
     view_projection_matrix: &glm::Mat4) {
     // Check if node is drawable, set uniforms, draw
-    //avoid drawing the rootnode (?)
-    let vpm=view_projection_matrix*node.current_transformation_matrix;
+    //avoid drawing the rootnode
     if node.vao_id != 0 {
+        let mvp=view_projection_matrix*node.current_transformation_matrix;
         gl::BindVertexArray(node.vao_id);
+        gl::UniformMatrix4fv(4, 1, gl::FALSE, mvp.as_ptr());
         gl::DrawElements(gl::TRIANGLES,node.index_count,gl::UNSIGNED_INT,ptr::null());
-        
     }
     // Recurse
     for &child in &node.children {
-        draw_scene(&*child, &vpm);
+        draw_scene(&*child, &view_projection_matrix);
     }
 }
 
@@ -111,12 +111,17 @@ unsafe fn update_node_transformations(node: &mut scene_graph::SceneNode,
     let nref = -node.reference_point;
     let mut trans: glm::Mat4 = glm::identity();
     trans = transformation_so_far*trans;
+    glm::translate(&trans, &node.position);
     trans = glm::translate(&trans, &node.reference_point);
-    trans = glm::rotate(&trans, 0.05, &node.rotation);
+    trans = glm::scale(&trans, &node.scale);
+    trans = glm::rotate(&trans, node.rotation[0], &glm::vec3(1.0, 0.0, 0.0));
+    //trans = glm::rotation(node.rotation[0], &glm::vec3(1.0, 0.0, 0.0));
+    trans = glm::rotate(&trans, node.rotation[1], &glm::vec3(0.0, 1.0, 0.0));
+    trans = glm::rotate(&trans, node.rotation[2], &glm::vec3(0.0, 0.0, 1.0));
     trans = glm::translate(&trans, &nref);
 
     // Update the node's transformation matrix
-    node.current_transformation_matrix=node.current_transformation_matrix*trans;
+    node.current_transformation_matrix=trans;
     // Recurse
     for &child in &node.children {
     update_node_transformations(&mut *child,
@@ -176,62 +181,6 @@ fn main() {
             println!("GLSL\t: {}", util::get_gl_string(gl::SHADING_LANGUAGE_VERSION));
         }
 
-        // == // Set up your VAO here
-
-        /* Create the vector for 3D-coordinates where one line represents a 
-        point in 3D space, ie. x,y,z. 
-        Also make an array of indices which is needed to set up a VAO.
-        */ 
-
-        /*let vao1 = unsafe {
-                let vek: Vec<f32> = vec![
-                    -0.9, 0.9, 0.2,
-                    -0.9, 0.5, 0.2,
-                    -0.5, 0.7, 0.2,
-
-                    0.9, 0.9, 0.5,
-                    0.5, 0.7, 0.5,
-                    0.9, 0.5, 0.5,
-
-                    -0.9, -0.5, 0.7,
-                    -0.9, -0.9, 0.7,
-                    -0.5, -0.7, 0.7,
-
-
-                    -0.3, 0.7, 1.0,
-                     0.0, -0.7, 1.0,
-                     0.3, 0.7, 1.0
-
-                                         ];
-                let indices: Vec<u32> = (0..12).collect();
-
-                //The colors in RGBA-format, one line represents the color of one vertex. 
-                let color: Vec<f32> = vec![
-                     
-
-                     
-
-                    0.8, 0.2, 0.6, 0.9,
-                    0.5, 0.4, 0.2, 0.8,
-                    1.0, 0.6, 0.7, 0.9,
-
-                    0.3, 0.2, 0.8, 0.9,
-                    0.7, 0.6, 0.7, 0.8,
-                    0.15, 0.3, 0.1, 0.9,
-
-                    0.3, 0.6, 0.5, 1.0,
-                    0.9, 0.2, 0.9, 1.0,
-                    0.5, 0.6, 0.1, 0.6,
-
-                    0.9, 0.8, 0.1, 1.0,
-                    1.0, 1.0, 0.3, 0.4,
-                    0.9, 0.2, 1.0, 1.0
-
-
-                     
-                                         ];
-                setup_vao(&vek, &indices, &color)
-        };*/
         // Basic usage of shader helper:
         // The example code below returns a shader object, which contains the field `.program_id`.
         // The snippet is not enough to do the assignment, and will need to be modified (outside of
@@ -308,10 +257,7 @@ fn main() {
         tail_rotor.reference_point = glm::vec3(0.35, 2.3, 10.4);
         main_rotor.reference_point = glm::vec3(0.0, 2.3, 0.0);
         body.reference_point       = glm::vec3(0.0, 0.0, 0.0);
-        /*
-        door.reference_point = glm::vec3(0.35, 2.3, 10.4);
-        tail_rotor.reference_point = glm::vec3(0.35, 2.3, 10.4);
-        */
+    
         //hva skal de andre være?
 
         //organize the graph
@@ -351,10 +297,10 @@ fn main() {
                             trans = glm::translate(&trans,&glm::vec3(0.0, 40.0*delta_time, 0.0))
                         },
                         VirtualKeyCode::A => {
-                            trans = glm::translate(&trans,&glm::vec3(100.0*delta_time, 0.0, 0.0))
+                            trans = glm::translate(&trans,&glm::vec3(40.0*delta_time, 0.0, 0.0))
                         },
                         VirtualKeyCode::D => {
-                            trans = glm::translate(&trans,&glm::vec3(-100.0*delta_time, 0.0, 0.0))
+                            trans = glm::translate(&trans,&glm::vec3(-40.0*delta_time, 0.0, 0.0))
                         },
                         VirtualKeyCode::Q => {
                             trans = glm::translate(&trans,&glm::vec3(0.0, 0.0, 40.0*delta_time))
@@ -363,16 +309,16 @@ fn main() {
                             trans = glm::translate(&trans,&glm::vec3(0.0, 0.0, -40.0*delta_time))
                         },
                         VirtualKeyCode::Up => {
-                            trans = glm::rotate(&trans,0.03,&glm::vec3(-1.0, 0.0, 0.0))
+                            trans = glm::rotate(&trans,0.03,&glm::vec3(-10.0, 0.0, 0.0))
                         },
                         VirtualKeyCode::Down => {
-                            trans = glm::rotate(&trans,0.03,&glm::vec3(1.0, 0.0, 0.0))
+                            trans = glm::rotate(&trans,0.03,&glm::vec3(10.0, 0.0, 0.0))
                         },
                         VirtualKeyCode::Left => {
-                            trans = glm::rotate(&trans,0.03,&glm::vec3(0.0, -1.0, 0.0))
+                            trans = glm::rotate(&trans,0.03,&glm::vec3(0.0, -10.0, 0.0))
                         },
                         VirtualKeyCode::Right => {
-                            trans = glm::rotate(&trans,0.03,&glm::vec3(0.0, 1.0, 0.0))
+                            trans = glm::rotate(&trans,0.03,&glm::vec3(0.0, 10.0, 0.0))
                         },
                         VirtualKeyCode::R => {
                             trans = glm::identity();
@@ -398,13 +344,18 @@ fn main() {
                 //perspective matrix to achieve depth
                 let persp: glm::Mat4 =glm::perspective(16.0/9.0 as f32, std::f32::consts::PI/2.0, 1.0 as f32, 1000.0 as f32);
                 //translate to make sure triangles don't go out of view
-                let z_translation: glm::Mat4 = glm::translation(&glm::vec3(0.0, 0.0, -3.0));
+                let z_translation: glm::Mat4 = glm::translation(&glm::vec3(-10.0, 0.0, -3.0));
                 //apply transformations
                 matrise=persp*trans*z_translation;
                 //send the final transformation matrix to the vertex shader
-                gl::UniformMatrix4fv(4, 1, gl::FALSE, matrise.as_ptr());
-
+                //gl::UniformMatrix4fv(4, 1, gl::FALSE, matrise.as_ptr());
+                let sofar: glm::Mat4 = glm::identity();
+                //let sofar: glm::Mat4=trans*z_translation;
+                //let ny_sof=sofar*elapsed;
                 //draw the scene graph
+                
+                tail_rotor.rotation.x = elapsed;
+                update_node_transformations(&mut root, &sofar);
                 draw_scene(&root, &matrise);
 
 
@@ -487,15 +438,17 @@ fn main() {
                 }
 
                 // Handle escape separately
-               /* match keycode {
+                match keycode {
                     Escape => {
                         *control_flow = ControlFlow::Exit;
                     },
+                    /* 
                     Q => {
                         *control_flow = ControlFlow::Exit;
                     }
+                    */ 
                     _ => { }
-                }*/ 
+                }
             },
             Event::DeviceEvent { event: DeviceEvent::MouseMotion { delta }, .. } => {
                 // Accumulate mouse movement
