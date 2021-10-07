@@ -7,15 +7,15 @@ layout(location=1) out  vec4 color_out;
 layout(location=5) in  vec3 normals_in;
 layout(location=5) out  vec3 normals_out;
 uniform layout(location = 4) mat4 transform;
-//mat4x4 m = mat4(1);
+uniform layout(location = 2) mat4 modelmat;
 
 
 void main()
 {
-    //m[0][0]=uni; //task3, but breaks if I remove :)
-    //gl_Position = transform*vec4(position, 1.0f);
     gl_Position = transform * vec4(position, 1.0f);
-    color_out=color_in;
-    normals_out=normals_in;
+    color_out = color_in;
+    normals_out = normalize(mat3(modelmat) * normals_in);
+    //normals_out=normals_in;
+
 
 }

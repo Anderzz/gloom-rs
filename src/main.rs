@@ -8,6 +8,7 @@ mod util;
 mod mesh;
 mod scene_graph;
 use scene_graph::SceneNode;
+mod toolbox;
 
 use glutin::event::{Event, WindowEvent, DeviceEvent, KeyboardInput, ElementState::{Pressed, Released}, VirtualKeyCode::{self, *}};
 use glutin::event_loop::ControlFlow;
@@ -96,6 +97,7 @@ unsafe fn draw_scene(node: &scene_graph::SceneNode,
         let mvp=view_projection_matrix*node.current_transformation_matrix;
         gl::BindVertexArray(node.vao_id);
         gl::UniformMatrix4fv(4, 1, gl::FALSE, mvp.as_ptr());
+        gl::UniformMatrix4fv(2, 1, gl::FALSE, node.current_transformation_matrix.as_ptr());
         gl::DrawElements(gl::TRIANGLES,node.index_count,gl::UNSIGNED_INT,ptr::null());
     }
     // Recurse
@@ -110,15 +112,14 @@ unsafe fn update_node_transformations(node: &mut scene_graph::SceneNode,
     // Construct the correct transformation matrix
     let nref = -node.reference_point;
     let mut trans: glm::Mat4 = glm::identity();
+    trans = glm::translation(&nref)*trans;
+    trans = glm::scaling(&node.scale)*trans;
+    trans = glm::rotation(node.rotation[0], &glm::vec3(1.0, 0.0, 0.0))*trans;
+    trans = glm::rotation(node.rotation[1], &glm::vec3(0.0, 1.0, 0.0))*trans;
+    trans = glm::rotation(node.rotation[2], &glm::vec3(0.0, 0.0, 1.0))*trans;
+    trans = glm::translation(&node.reference_point)*trans;
+    trans = glm::translation(&node.position)*trans;
     trans = transformation_so_far*trans;
-    glm::translate(&trans, &node.position);
-    trans = glm::translate(&trans, &node.reference_point);
-    trans = glm::scale(&trans, &node.scale);
-    trans = glm::rotate(&trans, node.rotation[0], &glm::vec3(1.0, 0.0, 0.0));
-    //trans = glm::rotation(node.rotation[0], &glm::vec3(1.0, 0.0, 0.0));
-    trans = glm::rotate(&trans, node.rotation[1], &glm::vec3(0.0, 1.0, 0.0));
-    trans = glm::rotate(&trans, node.rotation[2], &glm::vec3(0.0, 0.0, 1.0));
-    trans = glm::translate(&trans, &nref);
 
     // Update the node's transformation matrix
     node.current_transformation_matrix=trans;
@@ -257,8 +258,6 @@ fn main() {
         tail_rotor.reference_point = glm::vec3(0.35, 2.3, 10.4);
         main_rotor.reference_point = glm::vec3(0.0, 2.3, 0.0);
         body.reference_point       = glm::vec3(0.0, 0.0, 0.0);
-    
-        //hva skal de andre være?
 
         //organize the graph
         root.add_child(&terrain);
@@ -266,6 +265,7 @@ fn main() {
         body.add_child(&door);
         body.add_child(&main_rotor);
         body.add_child(&tail_rotor);
+
 
 
         // Used to demonstrate keyboard handling -- feel free to remove
@@ -291,34 +291,34 @@ fn main() {
                 for key in keys.iter() {
                     match key {
                         VirtualKeyCode::W => {
-                            trans = glm::translate(&trans,&glm::vec3(0.0, -40.0*delta_time, 0.0));
+                            trans = glm::translation(&glm::vec3(0.0, -40.0*delta_time, 0.0))*trans
                         },
                         VirtualKeyCode::S => {
-                            trans = glm::translate(&trans,&glm::vec3(0.0, 40.0*delta_time, 0.0))
+                            trans = glm::translation(&glm::vec3(0.0, 40.0*delta_time, 0.0))*trans
                         },
                         VirtualKeyCode::A => {
-                            trans = glm::translate(&trans,&glm::vec3(40.0*delta_time, 0.0, 0.0))
+                            trans = glm::translation(&glm::vec3(40.0*delta_time, 0.0, 0.0))*trans
                         },
                         VirtualKeyCode::D => {
-                            trans = glm::translate(&trans,&glm::vec3(-40.0*delta_time, 0.0, 0.0))
+                            trans = glm::translation(&glm::vec3(-40.0*delta_time, 0.0, 0.0))*trans
                         },
                         VirtualKeyCode::Q => {
-                            trans = glm::translate(&trans,&glm::vec3(0.0, 0.0, 40.0*delta_time))
+                            trans = glm::translation(&glm::vec3(0.0, 0.0, 40.0*delta_time))*trans
                         },
                         VirtualKeyCode::E => {
-                            trans = glm::translate(&trans,&glm::vec3(0.0, 0.0, -40.0*delta_time))
+                            trans = glm::translation(&glm::vec3(0.0, 0.0, -40.0*delta_time))*trans
                         },
                         VirtualKeyCode::Up => {
-                            trans = glm::rotate(&trans,0.03,&glm::vec3(-10.0, 0.0, 0.0))
+                            trans = glm::rotation(0.03,&glm::vec3(-10.0, 0.0, 0.0))*trans
                         },
                         VirtualKeyCode::Down => {
-                            trans = glm::rotate(&trans,0.03,&glm::vec3(10.0, 0.0, 0.0))
+                            trans = glm::rotation(0.03,&glm::vec3(10.0, 0.0, 0.0))*trans
                         },
                         VirtualKeyCode::Left => {
-                            trans = glm::rotate(&trans,0.03,&glm::vec3(0.0, -10.0, 0.0))
+                            trans = glm::rotation(0.03,&glm::vec3(0.0, -10.0, 0.0))*trans
                         },
                         VirtualKeyCode::Right => {
-                            trans = glm::rotate(&trans,0.03,&glm::vec3(0.0, 10.0, 0.0))
+                            trans = glm::rotation(0.03,&glm::vec3(0.0, 10.0, 0.0))*trans
                         },
                         VirtualKeyCode::R => {
                             trans = glm::identity();
@@ -344,19 +344,33 @@ fn main() {
                 //perspective matrix to achieve depth
                 let persp: glm::Mat4 =glm::perspective(16.0/9.0 as f32, std::f32::consts::PI/2.0, 1.0 as f32, 1000.0 as f32);
                 //translate to make sure triangles don't go out of view
-                let z_translation: glm::Mat4 = glm::translation(&glm::vec3(-10.0, 0.0, -3.0));
+                let z_translation: glm::Mat4 = glm::translation(&glm::vec3(-10.0, 0.0, -10.0));
                 //apply transformations
                 matrise=persp*trans*z_translation;
-                //send the final transformation matrix to the vertex shader
-                //gl::UniformMatrix4fv(4, 1, gl::FALSE, matrise.as_ptr());
+
+                //transformations so far, to be updated by the traversal-function
                 let sofar: glm::Mat4 = glm::identity();
-                //let sofar: glm::Mat4=trans*z_translation;
-                //let ny_sof=sofar*elapsed;
-                //draw the scene graph
+
                 
-                tail_rotor.rotation.x = elapsed;
+                //setup the animations
+                tail_rotor.rotation.x = elapsed*5.0;
+                main_rotor.rotation.y = elapsed*5.0;
+
+                //get the Heading
+                let heading = toolbox::simple_heading_animation(elapsed);
+
+                //setup for animation
+                body.position.x = heading.x;
+                body.position.z = heading.z;
+                body.rotation.z = heading.roll;
+                body.rotation.y = heading.yaw;
+                body.rotation.x = heading.pitch;
+                
+
+                //update and draw the scene graph
                 update_node_transformations(&mut root, &sofar);
                 draw_scene(&root, &matrise);
+
 
 
                 // Issue the necessary commands to draw your scene here
