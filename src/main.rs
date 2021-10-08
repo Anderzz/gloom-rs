@@ -331,6 +331,13 @@ fn main() {
                             trans = glm::identity();
                         },
 
+                        VirtualKeyCode::Z => {
+                            door.position.z= -elapsed/5.0;
+                        }
+
+                        VirtualKeyCode::X => {
+                            door.position.z=0.0;
+                        }
 
                         _ => { }
                     }
@@ -360,51 +367,25 @@ fn main() {
 
                 
                 //setup the animations
-                tail_rotor.rotation.x = elapsed*5.0;
-                main_rotor.rotation.y = elapsed*5.0;
+                tail_rotor.rotation.x = elapsed*10.0;
+                main_rotor.rotation.y = elapsed*100.0;
 
-                //get the Heading
-                let heading = toolbox::simple_heading_animation(elapsed);
+            
 
-                /*//setup for animation
-                body.position.x = heading.x;
-                body.position.z = heading.z;
-                body.rotation.z = heading.roll;
-                body.rotation.y = heading.yaw;
-                body.rotation.x = heading.pitch;*/
-                
-
-                //update and draw the scene graph
-                //for mut root in &mut root_nodes {
-                /*for i in 1..6 {
-                let heading = toolbox::simple_heading_animation(elapsed/2.0+i as f32);
-                //setup for animation
-                body.position.x = heading.x;
-                body.position.z = heading.z;
-                body.rotation.z = heading.roll;
-                body.rotation.y = heading.yaw;
-                body.rotation.x = heading.pitch;
-                update_node_transformations(&mut root_nodes[i], &sofar);
-                draw_scene(&mut root_nodes[i], &matrise);
-                }*/
                 let mut i: f32 = 0.0;
                 for root in &mut root_nodes {
-                let heading = toolbox::simple_heading_animation(elapsed/2.0+i as f32);
-                i+=1.5;
-                //setup for animation
-                body.position.x = heading.x;
-                body.position.z = heading.z;
-                body.rotation.z = heading.roll;
-                body.rotation.y = heading.yaw;
-                body.rotation.x = heading.pitch;
-                update_node_transformations(root, &sofar);
-                draw_scene(root, &matrise);
+                    //get the heading
+                    let heading = toolbox::simple_heading_animation(elapsed+i/2.0 as f32);
+                    i+=1.5;
+                    //setup for animation
+                    body.position.x = heading.x;
+                    body.position.z = heading.z;
+                    body.rotation.z = heading.roll;
+                    body.rotation.y = heading.yaw;
+                    body.rotation.x = heading.pitch;
+                    update_node_transformations(root, &sofar);
+                    draw_scene(root, &matrise);
                 }
-
-
-
-
-
 
             }
 
