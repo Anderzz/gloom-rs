@@ -15,7 +15,6 @@ void main()
     gl_Position = transform * vec4(position, 1.0f);
     color_out = color_in;
     normals_out = normalize(mat3(modelmat) * normals_in);
-    //normals_out=normals_in;
 
 
 }

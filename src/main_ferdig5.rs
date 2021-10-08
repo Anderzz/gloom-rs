@@ -247,6 +247,7 @@ fn main() {
         //setup the scene graph
 
         //generate nodes for all objects
+        let mut root = SceneNode::new();
         let mut terrain = SceneNode::from_vao(terrain_vao, mesh.index_count);
         let mut body = SceneNode::from_vao(body_vao, heli.body.index_count);
         let mut door = SceneNode::from_vao(door_vao, heli.door.index_count);
@@ -258,16 +259,8 @@ fn main() {
         main_rotor.reference_point = glm::vec3(0.0, 2.3, 0.0);
         body.reference_point       = glm::vec3(0.0, 0.0, 0.0);
 
-
-        //make a vector of rootnodes
-        let mut root_nodes: Vec<scene_graph::Node> = vec![];
-        for i in 1..6 {
-            root_nodes.push(SceneNode::new());
-            root_nodes[i-1].add_child(&terrain);
-        }
-
-
         //organize the graph
+        root.add_child(&terrain);
         terrain.add_child(&body);
         body.add_child(&door);
         body.add_child(&main_rotor);
@@ -366,41 +359,40 @@ fn main() {
                 //get the Heading
                 let heading = toolbox::simple_heading_animation(elapsed);
 
-                /*//setup for animation
+                //setup for animation
                 body.position.x = heading.x;
                 body.position.z = heading.z;
                 body.rotation.z = heading.roll;
                 body.rotation.y = heading.yaw;
-                body.rotation.x = heading.pitch;*/
+                body.rotation.x = heading.pitch;
                 
 
                 //update and draw the scene graph
-                //for mut root in &mut root_nodes {
-                /*for i in 1..6 {
-                let heading = toolbox::simple_heading_animation(elapsed/2.0+i as f32);
-                //setup for animation
-                body.position.x = heading.x;
-                body.position.z = heading.z;
-                body.rotation.z = heading.roll;
-                body.rotation.y = heading.yaw;
-                body.rotation.x = heading.pitch;
-                update_node_transformations(&mut root_nodes[i], &sofar);
-                draw_scene(&mut root_nodes[i], &matrise);
-                }*/
-                let mut i: f32 = 0.0;
-                for root in &mut root_nodes {
-                let heading = toolbox::simple_heading_animation(elapsed/2.0+i as f32);
-                i+=1.5;
-                //setup for animation
-                body.position.x = heading.x;
-                body.position.z = heading.z;
-                body.rotation.z = heading.roll;
-                body.rotation.y = heading.yaw;
-                body.rotation.x = heading.pitch;
-                update_node_transformations(root, &sofar);
-                draw_scene(root, &matrise);
-                }
+                update_node_transformations(&mut root, &sofar);
+                draw_scene(&root, &matrise);
 
+
+
+                // Issue the necessary commands to draw your scene here
+                //Bind the VAO and make the drawcall
+                /*
+                gl::BindVertexArray(terrain_vao);
+                gl::DrawElements(gl::TRIANGLES,mesh.index_count,gl::UNSIGNED_INT,ptr::null());
+
+                //draw the helicopter
+                gl::BindVertexArray(body_vao);
+                gl::DrawElements(gl::TRIANGLES,heli.body.index_count,gl::UNSIGNED_INT,ptr::null());
+
+                gl::BindVertexArray(door_vao);
+                gl::DrawElements(gl::TRIANGLES,heli.door.index_count,gl::UNSIGNED_INT,ptr::null());
+
+                gl::BindVertexArray(main_rotor_vao);
+                gl::DrawElements(gl::TRIANGLES,heli.main_rotor.index_count,gl::UNSIGNED_INT,ptr::null());
+
+                gl::BindVertexArray(tail_rotor_vao);
+                gl::DrawElements(gl::TRIANGLES,heli.tail_rotor.index_count,gl::UNSIGNED_INT,ptr::null());
+                */
+                
 
 
 
